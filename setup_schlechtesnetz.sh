@@ -10,6 +10,25 @@ serverdev=${4}
 
 echo "operating from within ${script_dir}"
 
+ip link show ${controldev} 2>&1 > /dev/null
+if [ $? -ne 0 ]
+then
+        echo "${controldev} does not exist - exiting..."
+        exit 1
+fi
+ip link show ${serverdev} 2>&1 > /dev/null
+if [ $? -ne 0 ]
+then
+        echo "${serverdev} does not exist - exiting..."
+        exit 2
+fi
+ip link show ${consumerdev} 2>&1 > /dev/null
+if [ $? -ne 0 ]
+then
+        echo "${consumerdev} does not exist - exiting..."
+        exit 3
+fi
+
 echo "building container ${container}..."
 
 lxc-info -n ${container}
@@ -70,6 +89,10 @@ sed -i "s/intaddress/${intaddress}/g" ${script_dir}/interfaces.work
 #lxc file push ${script_dir}/interfaces.work ${container}/etc/network/interfaces
 cp ${script_dir}/interfaces.work ${rootfs}/etc/network/interfaces
 
+#activate forwarding
+sed -i "s/#net.ipv4.ip_forward/net.ipv4.ip_forward/g" ${rootfs}/etc/sysctl.conf
+sed -i "s/#net.ipv6.conf.all.forwarding/net.ipv6.conf.all.forwarding/g" ${rootfs}/etc/sysctl.conf
+
 #we restart the container to have the interfaces correctly configured
 #at our disposition
 lxc-stop -n ${container}
@@ -84,4 +107,18 @@ lxc-stop -n ${container}
 lxc-wait -n ${container} -s STOPPED
 lxc-start -n ${container}
 
-
+ip link show ${controldev} | grep "state UP" > /dev/null
+if [ $? -ne 0 ]
+then
+	echo "${controldev} is not up (yet) - is this on purpose?"
+fi
+ip link show ${serverdev} | grep "state UP" > /dev/null
+if [ $? -ne 0 ]
+then
+	echo "${serverdev} is not up (yet) - is this on purpose?"
+fi
+ip link show ${consumerdev} | grep "state UP" > /dev/null
+if [ $? -ne 0 ]
+then
+	echo "${consumerdev} is not up (yet) - is this on purpose?"
+fi
