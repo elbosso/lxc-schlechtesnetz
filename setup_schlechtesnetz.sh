@@ -93,6 +93,9 @@ cp ${script_dir}/interfaces.work ${rootfs}/etc/network/interfaces
 sed -i "s/#net.ipv4.ip_forward/net.ipv4.ip_forward/g" ${rootfs}/etc/sysctl.conf
 sed -i "s/#net.ipv6.conf.all.forwarding/net.ipv6.conf.all.forwarding/g" ${rootfs}/etc/sysctl.conf
 
+#copy scripts 
+cp -a scripts ${rootfs}/
+
 #we restart the container to have the interfaces correctly configured
 #at our disposition
 lxc-stop -n ${container}
