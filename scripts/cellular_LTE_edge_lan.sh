@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2181
 #https://www.badunetworks.com/9-sets-of-sample-tc-commands-to-simulate-common-network-scenarios/
 tc qdisc show dev eth1 | grep "noqueue 0" >/dev/null
 if [ $? -ne 0 ]

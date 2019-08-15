@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2181
 #https://calomel.org/network_loss_emulation.html
 tc qdisc show dev eth1 | grep "noqueue 0" >/dev/null
 if [ $? -ne 0 ]
