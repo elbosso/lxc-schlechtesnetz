@@ -21,10 +21,6 @@ connection cheracteristics using netem. Kind of like docker scripts but without 
 
 This script sets up a LXC container that can act as an intelligent piece of
 network cabling with adjustable quality parameters. It has several command line parameters. Their meaning is as follows:
-container="$1"
-controldev="$2"
-consumerdev="$3"
-serverdev="$4"
 
 ```
 ./setup_schlechtesnetz.sh <container> <controldev> <consumerdev> <serverdev> 
@@ -37,6 +33,7 @@ serverdev="$4"
 </dl>
 
 ## scripts
+
 The scripts contained herein are available inside the container once it is built. The path inside the container is /scripts.
 There are scripts for switching on several prebuilt profiles and of course one to switch it off. Furthermore, there is one script as template
 for situations where only certain protocols or sockets should be influenced
