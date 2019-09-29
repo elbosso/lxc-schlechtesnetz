@@ -66,6 +66,7 @@ lxc-wait -n "$container" -s RUNNING
 #netplan: arghhh! We want ifupdown and so we need to get rid of 
 #this junk!
 lxc-attach -n "$container" -- apt-get -y remove netplan
+lxc-attach -n "$container" -- rm -rf /etc/netplan
 
 #Now we install ll needed packages
 #(or some the author deems necessary...)
