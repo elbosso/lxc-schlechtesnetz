@@ -63,13 +63,9 @@ echo "lxc.net.2.flags = up" ; } >> /var/lib/lxc/"$container"/config
 lxc-start -n "$container"
 lxc-wait -n "$container" -s RUNNING
 
-#netplan: arghhh! We want ifupdown and so we need to get rid of 
-#this junk!
-lxc-attach -n "$container" -- apt-get -y remove netplan
-lxc-attach -n "$container" -- rm -rf /etc/netplan
-
 #Now we install ll needed packages
 #(or some the author deems necessary...)
+sleep 5
 lxc-attach -n "$container" -- apt-get update
 lxc-attach -n "$container" -- apt-get -y upgrade
 lxc-attach -n "$container" -- apt-get -y install joe screen conky ifupdown openssh-server bridge-utils
@@ -111,6 +107,17 @@ lxc-attach -n "$container" -- apt-get clean
 lxc-stop -n "$container"
 lxc-wait -n "$container" -s STOPPED
 lxc-start -n "$container"
+lxc-wait -n "$container" -s RUNNING
+
+#netplan: arghhh! We want ifupdown and so we need to get rid of 
+#this junk!
+lxc-attach -n "$container" -- apt-get -y remove netplan
+lxc-attach -n "$container" -- rm -rf /etc/netplan
+
+lxc-stop -n "$container"
+lxc-wait -n "$container" -s STOPPED
+lxc-start -n "$container"
+lxc-wait -n "$container" -s RUNNING
 
 ip link show "$controldev" | grep "state UP" > /dev/null
 if [ $? -ne 0 ]
