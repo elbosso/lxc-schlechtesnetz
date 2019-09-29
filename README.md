@@ -37,3 +37,10 @@ network cabling with adjustable quality parameters. It has several command line 
 The scripts contained herein are available inside the container once it is built. The path inside the container is /scripts.
 There are scripts for switching on several prebuilt profiles and of course one to switch it off. Furthermore, there is one script as template
 for situations where only certain protocols or sockets should be influenced
+
+A SSH-server is installed and active on this appliance.
+
+Additionally, no password is set for the default user account named ubuntu.
+If the user wants to use the console or SSH to login, some administrator has
+to set a password for this account first (or create entirely new accounts of
+course).
