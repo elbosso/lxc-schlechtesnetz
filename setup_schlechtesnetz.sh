@@ -1,7 +1,16 @@
 #!/bin/bash
 # shellcheck disable=SC2181
-#script="$0"
-script_dir=$(dirname $"script")
+script="$0"
+script_dir=$(dirname "$script")
+
+if [ "$#" -ne 4 ]; then
+    echo "Illegal number of parameters"
+	echo "$script containername control_dev consumer_dev server_dev"
+	echo -e "\tcontainername\tname of the container to be created"
+	echo -e "\tcontrol_dev\tdevice for controlling the container via ssh"
+	echo -e "\tconsumer_dev\tupstream device coupled by bridge"
+	echo -e "\tserver_dev\tdownstream device coupled by bridge"
+fi
 
 #config variables from command line arguments
 container="$1"
@@ -39,8 +48,8 @@ then
         exit 1
 fi
 
-#lxc-create for the container - at this moment, we always build a bionic beaver ubuntu container
-lxc-create -t download -n "$container" -- -d ubuntu -r bionic  -a amd64
+#lxc-create for the container - at this moment, we always build a focal beaver ubuntu container
+lxc-create -t download -n "$container" -- -d ubuntu -r focal  -a amd64
 
 lxc-info -n "$container"
 if [ $? -ne 0 ]
@@ -49,33 +58,42 @@ then
         exit 2
 fi
 
+rootfs=$(lxc-info -n "$container" -c lxc.rootfs.path|rev|cut -d " " -f 1|cut -d ":" -f 1|rev)
+
 #changing the config of the container so it has the interfaces named
 #at startup properly assigned
-sed -i "s/lxc.net.0.link =.*/lxc.net.0.link = $controldev/g" /var/lib/lxc/"$container"/config
+sed -i "s/lxc.net.0.link =.*/lxc.net.0.link = $controldev/g" "$rootfs/.."/config
 { echo "lxc.net.1.type = veth" ;\
 echo "lxc.net.1.link = $consumerdev" ;\
 echo "lxc.net.1.flags = up" ;\
 echo "lxc.net.2.type = veth" ;\
 echo "lxc.net.2.link = $serverdev" ;\
-echo "lxc.net.2.flags = up" ; } >> /var/lib/lxc/"$container"/config
+echo "lxc.net.2.flags = up" ; } >> "/$rootfs/.."/config
 
 #starting the container
 lxc-start -n "$container"
 lxc-wait -n "$container" -s RUNNING
 
-#Now we install ll needed packages
+#netplan: arghhh! We want ifupdown and so we need to get rid of 
+#this junk!
+lxc-attach -n "$container" -- apt-get -y remove netplan
+
+#Now we install all needed packages
 #(or some the author deems necessary...)
 sleep 5
 lxc-attach -n "$container" -- apt-get update
 lxc-attach -n "$container" -- apt-get -y upgrade
-lxc-attach -n "$container" -- apt-get -y install joe screen conky ifupdown openssh-server bridge-utils
+lxc-attach -n "$container" -- bash -c "echo 'wireshark-common wireshark-common/install-setuid boolean true' | debconf-set-selections"
+lxc-attach -n "$container" -- bash -c "DEBIAN_FRONTEND=noninteractive apt-get -y install joe screen conky ifupdown openssh-server bridge-utils iproute2 iptables git wireshark jq curl python3-pip"
+
+lxc-attach -n "$container" -- pip3 install tcconfig
 
 #Because we do not use or require LXD at this point,
 #we can not use lxc push file
 #so we have to cp files and to be able to do so - we
 #need to know where the root file system of the container is located
 #lxcpath=$(lxc-config lxc.lxcpath)
-rootfs=$(lxc-info -n "$container" -c lxc.rootfs.path|rev|cut -d " " -f 1|cut -d ":" -f 1|rev)
+#rootfs=$(lxc-info -n "$container" -c lxc.rootfs.path|rev|cut -d " " -f 1|cut -d ":" -f 1|rev)
 #containerpath=$(echo "$lxcpath""/""$container")
 
 #Now we customize the network interface configuration and
@@ -92,7 +110,16 @@ sed -i "s/#net.ipv4.ip_forward/net.ipv4.ip_forward/g" "$rootfs"/etc/sysctl.conf
 sed -i "s/#net.ipv6.conf.all.forwarding/net.ipv6.conf.all.forwarding/g" "$rootfs"/etc/sysctl.conf
 
 #copy scripts 
-cp -a scripts "$rootfs"/
+cp -a "$script_dir"/scripts "$rootfs"/home/ubuntu/
+
+lxc-attach -n "$container" -- git clone https://github.com/thombashi/tcconfig /home/ubuntu/scripts/tcconfig
+lxc-attach -n "$container" -- git clone https://github.com/urbenlegend/netimpair /home/ubuntu/scripts/netimpair
+lxc-attach -n "$container" -- git clone https://github.com/Excentis/impairment-node /home/ubuntu/scripts/impairment-node
+
+lxc-attach -n "$container" -- chown -R ubuntu:ubuntu /home/ubuntu/scripts
+
+lxc-attach -n "$container" -- adduser ubuntu wireshark
+lxc-attach -n "$container" -- bash -c "echo ubuntu:resu | chpasswd" 
 
 #we restart the container to have the interfaces correctly configured
 #at our disposition

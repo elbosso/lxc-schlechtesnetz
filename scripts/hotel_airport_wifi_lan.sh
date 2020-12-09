@@ -13,5 +13,11 @@ then
 	echo "deleting old rules on eth2 ..." 
 	tc qdisc del dev eth2 root
 fi
-tc qdisc add dev eth1 root netem delay 8ms 6ms rate 600000kbit
-tc qdisc add dev eth2 root netem delay 8ms 6ms rate 600000kbit
+delay1=8ms
+delay2=6ms
+rate=600000kbit
+tc qdisc add dev eth1 root handle 1: tbf rate "$rate" burst 32kbit latency 400ms
+tc qdisc add dev eth1 parent 1:1 handle 10: netem delay "$delay1" "$delay2" distribution normal
+tc qdisc add dev eth2 root handle 1: tbf rate "$rate" burst 32kbit latency 400ms
+tc qdisc add dev eth2 parent 1:1 handle 10: netem delay "$delay1" "$delay2" distribution normal
+
